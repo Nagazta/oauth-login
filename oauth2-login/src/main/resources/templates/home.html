@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - OAuth2 Demo</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+    <div class="container">
+        <div class="profile">
+            <img th:src="${picture}" alt="Profile Picture" th:if="${picture}">
+            <h1 th:text="'Welcome, ' + ${name} + '!'">Welcome!</h1>
+            <p class="email" th:text="${email}">email@example.com</p>
+            
+            <a href="/profile" class="login-btn" style="margin-bottom: 15px;">View Profile</a>
+            
+            <form action="/logout" method="post" th:action="@{/logout}">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="logout-btn">Logout</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
