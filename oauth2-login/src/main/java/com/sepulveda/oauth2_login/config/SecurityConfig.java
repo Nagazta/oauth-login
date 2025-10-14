@@ -14,26 +14,27 @@ public class SecurityConfig {
 
     public SecurityConfig(OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler) {
         this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
+        System.out.println("=== SecurityConfig Constructor - Handler injected: " + oAuth2LoginSuccessHandler);
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        System.out.println("=== Configuring SecurityFilterChain with handler: " + oAuth2LoginSuccessHandler);
+        
         http
             .authorizeHttpRequests(auth -> auth
-                // Allow H2 console access without authentication
                 .requestMatchers("/h2-console/**").permitAll()
-                // Allow public endpoints
                 .requestMatchers("/login", "/error").permitAll()
-                // Require authentication for home and profile
                 .requestMatchers("/", "/profile").authenticated()
-                // All other requests require authentication
                 .anyRequest().authenticated()
             )
-            .oauth2Login(oauth2 -> oauth2
-                .successHandler(oAuth2LoginSuccessHandler)
-                .defaultSuccessUrl("/", true)
-                .loginPage("/login")
-            )
+            .oauth2Login(oauth2 -> {
+                System.out.println("=== Configuring OAuth2 Login ===");
+                oauth2
+                    .successHandler(oAuth2LoginSuccessHandler)
+                    .defaultSuccessUrl("/", true)
+                    .loginPage("/login");
+            })
             .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login")
@@ -42,11 +43,9 @@ public class SecurityConfig {
                 .deleteCookies("JSESSIONID")
                 .permitAll()
             )
-            // Disable CSRF for H2 console
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/h2-console/**")
             )
-            // Allow H2 console to be displayed in frames (required for H2 web interface)
             .headers(headers -> headers
                 .frameOptions(frame -> frame.sameOrigin())
             );
