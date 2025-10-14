@@ -27,6 +27,12 @@ public class ProfileController {
         }
 
         String email = principal.getAttribute("email");
+        
+        // Handle GitHub users without email
+        if (email == null || email.isEmpty()) {
+            email = principal.getAttribute("login") + "@github.user";
+        }
+        
         UserEntity user = userService.getUserByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -46,6 +52,11 @@ public class ProfileController {
         }
 
         String email = principal.getAttribute("email");
+        
+        // Handle GitHub users without email
+        if (email == null || email.isEmpty()) {
+            email = principal.getAttribute("login") + "@github.user";
+        }
         
         try {
             userService.updateProfileByEmail(email, displayName, bio);

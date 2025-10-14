@@ -27,6 +27,14 @@ public class HomeController {
             String picture = principal.getAttribute("picture");
             
             System.out.println("Authenticated user email: " + email);
+            System.out.println("Authenticated user name: " + name);
+            
+            // Check if email is null (GitHub sometimes doesn't provide email)
+            if (email == null || email.isEmpty()) {
+                // Try to get email from GitHub-specific attribute
+                email = principal.getAttribute("login") + "@github.user";
+                System.out.println("Email was null, using GitHub login: " + email);
+            }
             
             // Auto-create user if doesn't exist (workaround)
             UserEntity user = userRepository.findByEmail(email).orElse(null);
@@ -34,16 +42,16 @@ public class HomeController {
                 System.out.println("User not found in DB - creating now...");
                 user = new UserEntity();
                 user.setEmail(email);
-                user.setDisplayName(name);
-                user.setAvatarUrl(picture);
-                user.setBio("User created from home controller");
+                user.setDisplayName(name != null ? name : "GitHub User");
+                user.setAvatarUrl(picture != null ? picture : principal.getAttribute("avatar_url"));
+                user.setBio("User created from " + (email.contains("@github.user") ? "GitHub" : "Google"));
                 userRepository.save(user);
                 System.out.println("✅ User created!");
             }
             
             model.addAttribute("name", name);
             model.addAttribute("email", email);
-            model.addAttribute("picture", picture);
+            model.addAttribute("picture", picture != null ? picture : principal.getAttribute("avatar_url"));
             return "home";
         }
         
