@@ -22,12 +22,20 @@ public class SecurityConfig {
         System.out.println("=== Configuring SecurityFilterChain with handler: " + oAuth2LoginSuccessHandler);
         
         http
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/h2-console/**").permitAll()
-                .requestMatchers("/login", "/error").permitAll()
+          .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/h2-console/**",
+                    "/login",
+                    "/error",
+                    "/css/**",
+                    "/js/**",
+                    "/images/**",
+                    "/webjars/**"
+                ).permitAll()
                 .requestMatchers("/", "/profile").authenticated()
                 .anyRequest().authenticated()
             )
+
             .oauth2Login(oauth2 -> {
                 System.out.println("=== Configuring OAuth2 Login ===");
                 oauth2
