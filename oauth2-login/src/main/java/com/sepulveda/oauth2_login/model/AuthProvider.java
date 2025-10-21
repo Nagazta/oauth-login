@@ -16,10 +16,10 @@ public class AuthProvider {
     private UserEntity user;
     
     @Column(nullable = false)
-    private String provider; // e.g., "google", "github"
+    private String provider; 
     
     @Column(nullable = false)
-    private String providerId; // The user's ID from the OAuth provider
+    private String providerId; 
     
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
