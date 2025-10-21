@@ -1,5 +1,6 @@
 package com.sepulveda.oauth2_login.config;
 
+import com.sepulveda.oauth2_login.model.AuthProvider;
 import com.sepulveda.oauth2_login.model.UserEntity;
 import com.sepulveda.oauth2_login.repository.UserRepository;
 import jakarta.servlet.ServletException;
@@ -21,6 +22,8 @@ public class OAuth2LoginSuccessHandler extends SavedRequestAwareAuthenticationSu
 
     public OAuth2LoginSuccessHandler(UserRepository userRepository) {
         this.userRepository = userRepository;
+        this.setDefaultTargetUrl("http://localhost:5173/login?callback=true");
+        this.setAlwaysUseDefaultTargetUrl(true);
     }
 
     @Override
@@ -28,38 +31,78 @@ public class OAuth2LoginSuccessHandler extends SavedRequestAwareAuthenticationSu
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws ServletException, IOException {
         
-        System.out.println("=== OAuth2 Login Handler Called ===");
-        
         OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
         OAuth2User oAuth2User = oauthToken.getPrincipal();
-        
-        String email = oAuth2User.getAttribute("email");
-        String name = oAuth2User.getAttribute("name");
-        String picture = oAuth2User.getAttribute("picture");
         String provider = oauthToken.getAuthorizedClientRegistrationId();
         
-        System.out.println("Email: " + email);
-        System.out.println("Name: " + name);
-        System.out.println("Provider: " + provider);
+        String email = getEmail(oAuth2User, provider);
+        String name = getName(oAuth2User, provider);
+        String picture = getPicture(oAuth2User, provider);
+        String providerId = getProviderId(oAuth2User, provider);
+        
+        // Handle missing email from GitHub
+        if (email == null || email.isEmpty()) {
+            if ("github".equals(provider)) {
+                String login = oAuth2User.getAttribute("login");
+                email = login + "@github.user";
+            } else {
+                response.sendRedirect("http://localhost:5173/login?error=no_email");
+                return;
+            }
+        }
         
         UserEntity user = userRepository.findByEmail(email).orElse(null);
         
         if (user == null) {
-            System.out.println("Creating new user...");
             user = new UserEntity();
             user.setEmail(email);
-            user.setDisplayName(name);
+            user.setDisplayName(name != null ? name : email.split("@")[0]);
             user.setAvatarUrl(picture);
-            user.setBio("New user registered via " + provider);
+            user.setBio("Joined via " + provider);
             
-            user = userRepository.save(user);
-            System.out.println("✅ New user created with ID: " + user.getId());
-        } else {
-            System.out.println("✅ User already exists with ID: " + user.getId());
+            try {
+                user = userRepository.save(user);
+                
+                AuthProvider authProvider = new AuthProvider(user, provider, providerId);
+                user.getAuthProviders().add(authProvider);
+                user = userRepository.save(user);
+                
+            } catch (Exception e) {
+                response.sendRedirect("http://localhost:5173/login?error=save_failed");
+                return;
+            }
         }
         
-        System.out.println("=== End OAuth2 Login Handler ===");
-        
         super.onAuthenticationSuccess(request, response, authentication);
+    }
+    
+    private String getProviderId(OAuth2User oAuth2User, String provider) {
+        if ("github".equals(provider)) {
+            Object id = oAuth2User.getAttribute("id");
+            return id != null ? id.toString() : null;
+        }
+        return oAuth2User.getAttribute("sub");
+    }
+    
+    private String getEmail(OAuth2User oAuth2User, String provider) {
+        return oAuth2User.getAttribute("email");
+    }
+    
+    private String getName(OAuth2User oAuth2User, String provider) {
+        if ("github".equals(provider)) {
+            String name = oAuth2User.getAttribute("name");
+            if (name == null || name.isEmpty()) {
+                name = oAuth2User.getAttribute("login");
+            }
+            return name;
+        }
+        return oAuth2User.getAttribute("name");
+    }
+    
+    private String getPicture(OAuth2User oAuth2User, String provider) {
+        if ("github".equals(provider)) {
+            return oAuth2User.getAttribute("avatar_url");
+        }
+        return oAuth2User.getAttribute("picture");
     }
 }
