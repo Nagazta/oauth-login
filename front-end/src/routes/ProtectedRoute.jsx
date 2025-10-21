@@ -1,22 +1,35 @@
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { fetchCurrentUser } from "../api/userApi";
-import Home from "../pages/home";
+import { fetchCurrentUserSimple } from "../api/userApi";
 
-const ProtectedRoute = () => {
+const ProtectedRoute = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCurrentUser().then((data) => {
+    fetchCurrentUserSimple().then((data) => {
       setUser(data);
       setLoading(false);
     });
   }, []);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) {
+    return (
+      <div style={{ 
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "center", 
+        height: "100vh",
+        flexDirection: "column",
+        gap: "10px"
+      }}>
+        <div className="spinner"></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
-  return user ? <Home user={user} /> : <Navigate to="/login" />;
+  return user ? children : <Navigate to="/login" replace />;
 };
 
 export default ProtectedRoute;

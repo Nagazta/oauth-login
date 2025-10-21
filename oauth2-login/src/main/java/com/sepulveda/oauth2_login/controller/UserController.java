@@ -104,8 +104,11 @@ public class UserController {
                 });
     }
 
-    @GetMapping("/profile")
-    public ResponseEntity<?> getProfile(@AuthenticationPrincipal OAuth2User principal) {
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(
+            @AuthenticationPrincipal OAuth2User principal,
+            @RequestBody Map<String, String> updates) {
+
         if (principal == null) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Not authenticated");
@@ -113,21 +116,30 @@ public class UserController {
         }
 
         String email = principal.getAttribute("email");
-        if (email == null) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Email not found");
-            return ResponseEntity.status(400).body(error);
+        
+        // Handle GitHub users without email - same as /me endpoint
+        if (email == null || email.isEmpty()) {
+            String login = principal.getAttribute("login");
+            if (login != null) {
+                email = login + "@github.user";
+            } else {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Email not found");
+                return ResponseEntity.status(400).body(error);
+            }
         }
 
-        final String finalEmail = email;
+        String displayName = updates.get("displayName");
+        String bio = updates.get("bio");
 
-        return userService.getUserByEmail(finalEmail)
-                .<ResponseEntity<?>>map(user -> ResponseEntity.ok(toDTO(user)))
-                .orElseGet(() -> {
-                    Map<String, String> error = new HashMap<>();
-                    error.put("error", "User not found");
-                    return ResponseEntity.status(404).body(error);
-                });
+        try {
+            UserEntity updatedUser = userService.updateProfileByEmail(email, displayName, bio);
+            return ResponseEntity.ok(toDTO(updatedUser));
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update profile: " + e.getMessage());
+            return ResponseEntity.status(500).body(error);
+        }
     }
     private UserDTO toDTO(UserEntity user) {
         UserDTO dto = new UserDTO();
