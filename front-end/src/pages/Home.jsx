@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import "../styles/home.css";
 
 const Home = () => {
@@ -7,7 +7,6 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Fetch the logged-in user's info
   useEffect(() => {
     fetch("http://localhost:8080/api/user/me", { credentials: "include" })
       .then((res) => {
@@ -53,13 +52,10 @@ const Home = () => {
         <p className="email">{user.email}</p>
         {user.bio && <p className="bio">{user.bio}</p>}
 
-        <a
-          href="/profile"
-          className="login-btn"
-          style={{ marginBottom: "15px" }}
-        >
+        {/* SPA-friendly navigation */}
+        <Link to="/profile" className="login-btn" style={{ marginBottom: "15px" }}>
           View Profile
-        </a>
+        </Link>
 
         <button onClick={handleLogout} className="logout-btn">
           Logout
